@@ -1,0 +1,93 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_IS31FL3731.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_PixelDust.h>
+
+#include <Fonts/Org_01_smaller.h>
+
+#define N_GRAINS     35 // Number of grains of sand
+#define WIDTH        16 // Display width in pixels
+#define HEIGHT        9 // Display height in pixels
+#define MAX_FPS     45 // Maximum redraw rate, frames/second
+
+Adafruit_PixelDust sand(WIDTH, HEIGHT, N_GRAINS, 1, 180);
+Adafruit_IS31FL3731 ledmatrix = Adafruit_IS31FL3731();
+GFXcanvas8 virtual_screen = GFXcanvas8(9,16);
+Adafruit_MPU6050 mpu = Adafruit_MPU6050();
+sensors_event_t a, g, temp;
+uint32_t  prevTime   = 0;
+Grain pervGrain [N_GRAINS];
+// The lookup table to make the brightness changes be more visible
+uint8_t sweep[] = {1, 2, 3, 4, 6, 8, 10, 15, 20, 30, 40, 60, 60, 40, 30, 20, 15, 10, 8, 6, 4, 3, 2, 1};
+TwoWire i2c_bus = TwoWire(0);
+void setup() {
+  i2c_bus.begin(18, 19, 200000);
+  Serial.begin(115200);
+  Serial.println("SANDDDD");
+  if(!sand.begin())  Serial.println("Sand could not be made");
+  if (! mpu.begin(0x68,&i2c_bus)) {
+    Serial.println("MPU not found");
+    while (1);
+  }
+  mpu.setGyroStandby(true,true,true);
+  mpu.setAccelerometerRange(MPU6050_RANGE_4_G);
+  if (! ledmatrix.begin(0x74,&i2c_bus)) {
+    Serial.println("IS31 not found");
+    while (0);
+  }
+  // Draw an obstacle for sand to move around
+  // for(uint8_t y=0; y<3; y++) {
+  //   for(uint8_t x=0; x<3; x++) {
+  //     sand.setPixel(6+x, 2+y);             // Set pixel in the simulation
+  //     ledmatrix.drawPixel(x+6,y+2,20);   // Set pixel in pixelBuf[]
+  //   }
+  // }
+  sand.randomize(); // Initialize random sand positions
+  virtual_screen.setTextColor(150);
+  //virtual_screen.setRotation(3);
+  virtual_screen.setFont(&Org_01);
+  virtual_screen.setTextSize(1);
+  virtual_screen.setTextWrap(true);
+  virtual_screen.setCursor(0,6);
+  virtual_screen.print("24 15");
+
+
+}
+uint8_t count = 0; 
+void loop() {
+  //virtual_screen.fillScreen(0);
+  virtual_screen.setCursor(0,6);
+  //virtual_screen.print(count);
+  for(int8_t x = 0;x<WIDTH;x++){
+    for(int8_t y = 0;y<HEIGHT;y++){
+    ledmatrix.drawPixel(x,y,virtual_screen.getPixel(HEIGHT-y-1,x));
+    }
+    delay(100);
+  }
+  //ledmatrix.printf("%d:%d", count,count);
+  count++;
+  delay(150);
+
+}
+
+
+
+
+
+  /* Print out the values */
+  // Serial.print("Acceleration X: ");
+  // Serial.print(a.acceleration.x);
+  // Serial.print("    ");
+  // Serial.print(mpu.rawAccX);
+  // Serial.print(", Y: ");
+  // Serial.print(a.acceleration.y);
+  // Serial.print(", Z: ");
+  // Serial.print(a.acceleration.z);
+  // Serial.println(" m/s^2");
+
+  // Serial.print("Temperature: ");
+  // Serial.print(temp.temperature);
+  // Serial.println(" degC");
