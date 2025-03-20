@@ -49,5 +49,6 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "idf.pythonInstallPath": "/Users/sieberoets/.pyenv/versions/3.11.3/bin/python3"
 }

@@ -8,7 +8,6 @@
 #include "proj_constants.hpp"
 #include "clock_render.hpp"
 #include "wifi_manager.hpp"
-#include "ntp_client.hpp"
 #include <Fonts/Org_01_smaller.h>
 
 
@@ -24,7 +23,7 @@ TwoWire i2c_bus = TwoWire(0);
 uint8_t curr_time[5]{0,0,0,0,0};
 ClockRenderer clk_render(&virtual_screen);
 WifiMan wifi;
-NTPClient ntp;  // Auto-detects timezone
+
 
 // Define previous acceleration magnitude and timestamp
 float prevMagnitude = 0;
@@ -48,6 +47,7 @@ void drawScreen(){
 }
 
 void setup() {
+  delay(2500);
   i2c_bus.begin(2, 1, 200000);
   Serial.begin(115200);
   Serial.println("SANDDDD");
@@ -61,71 +61,78 @@ void setup() {
     Serial.println("IS31 not found");
     while (0);
   }
-  virtual_screen.setTextColor(30);
-  //virtual_screen.setRotation(2);
+  //virtual_screen.setTextColor(30);
+  //virtual_screen.setRotation(1);
+  ledmatrix.setRotation(2);
   virtual_screen.setFont(&Org_01);
   virtual_screen.setTextSize(1);
   virtual_screen.setTextWrap(false);
-  wifi.initWifiBlocking();
-  if(wifi.isConnected()){
-    ntp.begin();
-  }
-  // curr_time[0]=2; curr_time[1]=1;curr_time[2]=3; curr_time[3]=2; curr_time[4]=40;
-  // clk_render.setTime(curr_time);
-  // drawScreen();
-  // for(int8_t x = WIDTH-1;x>=0;x--){
-  //   for(int8_t y = 0;y<HEIGHT;y++){
-    
-  //   if(x>2){
-  //     ledmatrix.drawPixel(x,y,virtual_screen.getPixel(x,y));
-  //     if(virtual_screen.getPixel(x,y) !=0){
-  //       //set obstacle
-  //       sand.setPixel(x,y);
-  //     }
-  //   }else{
-      
-  //     if(virtual_screen.getPixel(x,y) !=0){
-  //       //set obstacle
-  //       sand.setPosition(grain_count,x,y);
-  //       grain_count++;
-  //       delay(300);
-  //       ledmatrix.drawPixel(x,y,200);
-  //     }   
-  //   }
-  //   }
-  // }
-  delay(2000);
+  wifi.initWifi();
+  //delay(2000);
 
 }
-uint8_t count = 0; 
-uint32_t timer = 0;
+int load_index = 0; 
+bool wifi_connecting_eff_running = false;
 uint32_t now = 0;
 void loop() {
   now = millis();
   wifi.tickWifi(now);
-  if((now % 1000 == 0) ){
+  if((now % 1000 == 0) && wifi.ntp.is_inited){
     //every second
-    clk_render.setTime(ntp.getTime());
+    clk_render.setTime(wifi.ntp.getTime());
   }
   if(now % 10 == 0){
-   // Read accelerometer...
-    mpu.getEvent(&a, &g, &temp);
-    clk_render.tick(now,mpu.rawAccX,mpu.rawAccY);
-    drawScreen();
-    float magnitude = sqrt(mpu.rawAccX*mpu.rawAccX +mpu.rawAccY*mpu.rawAccY);
-    // Compute the change in acceleration
-    float delta = abs(magnitude - prevMagnitude);
-    // Check if change is above threshold
-    if (delta > SHAKE_THRESHOLD) {
-        unsigned long currentTime = millis();
-        if (currentTime - prevTime < SHAKE_TIME_WINDOW) {
-            Serial.println("Shake detected!");
-            clk_render.fullSandify();
+    if(wifi.current_state == WIFI_STATE::CONNECTING_STA){
+      if(now % 50 == 0){
+        //Draw Effect
+        int fontdegrade = FONT_BRIGHTNESS;
+        for(int i=0;i<LOADING_TAIL_LENGTH;i++){
+          int index = load_index -i;
+          if(index<0){
+            index = DISPLAY_WIDTH + index;
+          }
+          virtual_screen.drawLine(index,0,index,DISPLAY_HEIGHT-1,fontdegrade);
+          fontdegrade-=FONT_BRIGHTNESS/LOADING_TAIL_LENGTH;
+          if(fontdegrade<(FONT_BRIGHTNESS/LOADING_TAIL_LENGTH)){
+            fontdegrade = 0;
+          }
         }
-        prevTime = currentTime; // Update last shake time
+        load_index++;
+        load_index = (load_index==DISPLAY_WIDTH)? 0:load_index;
+        drawScreen();
+        wifi_connecting_eff_running =true;
+      }     
     }
-    prevMagnitude = magnitude; // Update previous magnitude
-    //Serial.print("magnitude:");Serial.println(delta);
+    else{
+        if(wifi_connecting_eff_running){
+          //Wipe connecting display
+          wifi_connecting_eff_running =false;
+          virtual_screen.fillScreen(0);
+          drawScreen();
+        }
+        // Read accelerometer...
+        mpu.getEvent(&a, &g, &temp);
+        clk_render.tick(now,-mpu.rawAccX,-mpu.rawAccY); //ADD minus when flipping screen
+        drawScreen();
+        float magnitude = sqrt(mpu.rawAccX*mpu.rawAccX +mpu.rawAccY*mpu.rawAccY);
+        // Compute the change in acceleration
+        float delta = abs(magnitude - prevMagnitude);
+        // Check if change is above threshold
+        if (delta > SHAKE_THRESHOLD) {
+            unsigned long currentTime = millis();
+            if (currentTime - prevTime < SHAKE_TIME_WINDOW) {
+                Serial.println("Shake detected!");
+                clk_render.fullSandify();
+            }
+            prevTime = currentTime; // Update last shake time
+        } else if(delta>1500 && clk_render.isFullSandify()) {
+          //Keep effect going when sandified
+          clk_render.fullSandify();
+        }
+        prevMagnitude = magnitude; // Update previous magnitude
+        //Serial.print("magnitude:");Serial.println(delta);
+    }
+
   }
 
 }

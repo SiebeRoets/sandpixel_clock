@@ -31,5 +31,7 @@ class ClockRenderer {
     };
     void setTime(const uint8_t new_time[5]);
     void fullSandify();
+    bool isFullSandify(){return full_sandify;};
+    
     void tick(uint32_t now,int16_t acc_x, int16_t acc_y);
 };

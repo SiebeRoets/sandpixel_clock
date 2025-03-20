@@ -29,4 +29,5 @@ class SandRenderer {
     void stopSimulation();
     void setSandDimTimeout(uint32_t fadeout_time);
     void tick(uint32_t now, int16_t acc_x, int16_t acc_y);
+    void resetSandBrightness(){sand_brightness = FONT_BRIGHTNESS-1;};
 };

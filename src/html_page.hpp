@@ -13,6 +13,11 @@ const char HTML_PAGE[] = R"rawliteral(
         input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
         input[type="submit"] { background-color: #28a745; color: white; border: none; cursor: pointer; }
         input[type="submit"]:hover { background-color: #218838; }
+        input[type="range"] { width: 100%; margin: 10px 0; }
+        input[type="range"]::-webkit-slider-thumb { background: #28a745; }
+        input[type="range"]::-moz-range-thumb { background: #28a745; }
+        input[type="range"]::-ms-thumb { background: #28a745; }
+
     </style>
 </head>
 <body>
@@ -26,6 +31,8 @@ const char HTML_PAGE[] = R"rawliteral(
             <input type="password" id="password" name="password" required>
 
             <input type="submit" value="Save and Connect">
+            <button type="button" onclick="resetWiFi()" style="background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Reset WiFi</button>
+
         </form>
     </div>
 
@@ -49,7 +56,32 @@ const char HTML_PAGE[] = R"rawliteral(
             <input type="submit" value="Set Time">
         </form>
     </div>
+
+
+
+    <script>
+    const slider = document.getElementById("brightness");
+    const displayValue = document.getElementById("brightnessValue");
+
+    slider.addEventListener("input", () => {
+        displayValue.textContent = slider.value;
+    });
+    function resetWiFi() {
+        fetch('/reset_wifi', { method: 'POST' })
+            .then(response => response.text())
+            .then(data => alert("WiFi reset successfully!"))
+            .catch(error => console.error("Error resetting WiFi:", error));
+    }
+    </script>
 </body>
 </html>
 )rawliteral";
 
+// <div class="container" style="margin-top: 20px;">
+// <h2>Brightness Control</h2>
+// <form action="/set_brightness" method="POST">
+//     <input type="range" id="brightness" name="brightness" min="0" max="255" value="128">
+//     <p>Brightness: <span id="brightnessValue">128</span></p>
+//     <input type="submit" value="Set Brightness">
+// </form>
+// </div>

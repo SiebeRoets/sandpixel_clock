@@ -4,7 +4,8 @@ constexpr int DISPLAY_HEIGHT = 9;
 constexpr int FONT_WIDTH = 3;
 constexpr int FONT_HEIGHT = 5;
 constexpr int FONT_PIXELS = (FONT_HEIGHT*FONT_WIDTH);
-constexpr int FONT_BRIGHTNESS = 50;
+constexpr int FONT_BRIGHTNESS = 50; //TODO ADD VARIABLE BRIGHTNESS
+constexpr int LOADING_TAIL_LENGTH = (DISPLAY_WIDTH);
 
 constexpr int SAND_FPS = 35;
 constexpr int SAND_FADOUT_TIME = 5000;

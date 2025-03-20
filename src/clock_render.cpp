@@ -144,7 +144,13 @@ void ClockRenderer::tick(uint32_t now,int16_t acc_x, int16_t acc_y){
 }
    
 void ClockRenderer::fullSandify(){
-    if(full_sandify || !pixels_to_change.empty()) return;
+    if(full_sandify){
+        //reset sandify timer
+        full_sandify_time_passed = 0;
+        sand.resetSandBrightness();
+        return;
+    }
+    if(!pixels_to_change.empty()) return;
     full_sandify =true;
     Serial.println("Full sendify started");
     sand.setSandDimTimeout(FULL_SANDIFY_TIME);
